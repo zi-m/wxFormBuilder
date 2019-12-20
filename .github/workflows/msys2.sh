@@ -7,6 +7,7 @@ ln -s /mingw32/lib/binutils/libiberty.a /mingw32/lib/libiberty.a
 
 cd build/3.0/gmake2
 sed 's!\$(LDFLAGS) \$(RESOURCES) \$(ARCH) \$(LIBS)!\$(LIBS) \$(LDFLAGS) \$(RESOURCES) \$(ARCH)!g' *.make -i
+sed 's!\$(ALL_LDFLAGS) \$(LIBS)!\$(LIBS) \$(ALL_LDFLAGS)!g' *.make -i
 
 sed 's!-lbfd!-lbfd -lz!g' *.make -i
 
