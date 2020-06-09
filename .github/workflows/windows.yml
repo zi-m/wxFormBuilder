@@ -11,12 +11,12 @@ jobs:
     - uses: actions/checkout@v1
       with:
         submodules: true
-    - uses: eine/setup-msys2@01f26d8bc3659e5f41035724ba8f9e8174c82fd3
+    - uses: eine/setup-msys2@v1
       with:
         msystem: MINGW32
         release: false
         update: true
-        cache: true
+        cache: false
         install: 'mingw-w64-i686-gcc mingw-w64-i686-wxWidgets make'
     - name: Create build files
       shell: cmd
