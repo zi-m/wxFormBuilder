@@ -24,10 +24,6 @@ project "additional-components-plugin"
         libs            = libs .. ",media"
     end
 
-    if wxArchitecture then
-        buildoptions    {"-arch " .. wxArchitecture}
-    end
-
     configuration "not vs*"
         buildoptions    "-std=c++17"
 
@@ -42,8 +38,8 @@ project "additional-components-plugin"
         targetdir       "../../../output/plugins/additional"
 
     configuration "Debug"
-        targetsuffix    (DebugSuffix)
         wx_config       {Libs=libs, Debug="yes"}
+        targetsuffix    (DebugSuffix)
 
     configuration "Release"
         wx_config       {Libs=libs}

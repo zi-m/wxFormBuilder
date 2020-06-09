@@ -20,10 +20,6 @@ project "layout-components-plugin"
 
     local libs = "std,richtext,propgrid,stc,ribbon,aui"
 
-    if wxArchitecture then
-        buildoptions    {"-arch " .. wxArchitecture}
-    end
-
     configuration "not vs*"
         buildoptions    "-std=c++17"
 
@@ -38,8 +34,8 @@ project "layout-components-plugin"
         targetdir       "../../../output/plugins/layout"
 
     configuration "Debug"
-        targetsuffix    (DebugSuffix)
         wx_config       {Debug="yes", Libs=libs}
+        targetsuffix    (DebugSuffix)
 
     configuration "Release"
         wx_config       {Libs=libs}

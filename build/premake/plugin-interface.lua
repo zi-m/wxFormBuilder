@@ -20,10 +20,6 @@ project "plugin-interface"
     defines             {"TIXML_USE_TICPP"}
     targetsuffix        ("-" .. wxVersion)
 
-    if wxArchitecture then
-        buildoptions    {"-arch " .. wxArchitecture}
-    end
-
     configuration "not vs*"
         buildoptions    "-std=c++17"
 
@@ -35,12 +31,12 @@ project "plugin-interface"
         buildoptions    {"-fPIC"}
 
     configuration "Debug"
-        targetname      (CustomPrefix .. wxDebugSuffix .. "_plugin-interface")
         wx_config       {Debug="yes", WithoutLibs="yes"}
+        targetname      (CustomPrefix .. wxDebugSuffix .. "_plugin-interface")
 
     configuration "Release"
-        targetname      (CustomPrefix .. "_plugin-interface")
         wx_config       {WithoutLibs="yes"}
+        targetname      (CustomPrefix .. "_plugin-interface")
 
     configuration {"not vs*", "Release"}
         buildoptions    {"-fno-strict-aliasing"}

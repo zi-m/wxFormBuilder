@@ -31,6 +31,7 @@
 
 namespace ticpp
 {
+class Document;
 
 class Node;
 
@@ -67,6 +68,8 @@ class ApplicationData
 		bool m_modFlag;           // flag de proyecto modificado
 
 		bool m_warnOnAdditionsUpdate;	// flag to warn on additions update / class renames
+
+		bool m_darkMode;
 
 		PObjectDatabase m_objDb;  // Base de datos de objetos
 
@@ -274,7 +277,8 @@ class ApplicationData
 		@param fileMinor The minor revision of the file
 		@return true if successful, false otherwise
 		*/
-		bool ConvertProject( const wxString& path, int fileMajor, int fileMinor );
+
+		bool ConvertProject(ticpp::Document& doc, const wxString& path, int fileMajor, int fileMinor);
 
 		/**
 		Recursive function used to convert the object tree in the project file to the latest version.
@@ -354,6 +358,9 @@ class ApplicationData
 		bool CanPasteObjectFromClipboard();
 		bool CanCopyObject();
 		bool IsModified();
+
+		void SetDarkMode(bool darkMode);
+		bool IsDarkMode() const;
 
 		PObjectPackage GetPackage( unsigned int idx )
 		{ return m_objDb->GetPackage( idx );}

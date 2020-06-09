@@ -27,16 +27,15 @@ project "wxFormBuilder"
     defines             {"NO_GCC_PRAGMA", "TIXML_USE_TICPP", "APPEND_WXVERSION"}
     libdirs             {"../../sdk/lib"}
     links               {"TiCPP", "plugin-interface"}
+    if (dependson ~= nil) then
+        dependson       {"additional-components-plugin", "common-components-plugin", "containers-components-plugin", "forms-components-plugin", "layout-components-plugin"}
+    end
 
     local libs = ""
     if wxUseMediaCtrl then
         libs            = "std,stc,richtext,propgrid,aui,ribbon,media"
     else
         libs            = "std,stc,richtext,propgrid,aui,ribbon"
-    end
-
-    if wxArchitecture then
-        buildoptions    {"-arch " .. wxArchitecture}
     end
 
     if os.is("linux") then
@@ -73,9 +72,6 @@ project "wxFormBuilder"
         defines         {"_CRT_SECURE_NO_DEPRECATE", "_CRT_SECURE_NO_WARNINGS"}
         buildoptions    {"/std:c++17", "/wd4003"}
 
-    configuration "macosx"
-        linkoptions     {"-Wl,-L../../../output/lib/wxformbuilder"}
-
     configuration {"macosx", "Debug"}
         postbuildcommands{"sh ../../../install/macosx/postbuild.sh -c debug"}
 
@@ -84,14 +80,12 @@ project "wxFormBuilder"
 
     configuration "not windows"
         excludes        {"../../src/*.rc"}
-        libdirs         {"../../output/lib/wxformbuilder"}
         targetdir       "../../output/bin"
         targetname      "wxformbuilder"
         links           {"dl"}
 
     configuration "windows"
         files           {"../../src/*.rc"}
-        libdirs         {"../../output"}
         targetdir       "../../output"
         flags           {"Symbols", "WinMain"}
         if wxCompiler == "gcc" then
@@ -103,9 +97,9 @@ project "wxFormBuilder"
         end
 
     configuration "Debug"
+        wx_config       {Libs=libs, Debug="yes"}
         defines         {"__WXFB_DEBUG__"}
         targetsuffix    (DebugSuffix)
-        wx_config       {Libs=libs, Debug="yes"}
 
     configuration "Release"
         wx_config       {Libs=libs}

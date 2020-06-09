@@ -11,10 +11,25 @@
 solution "wxFormBuilder-Solution"
     language "C++"
     configurations      {"Debug", "Release"}
+    if (startproject ~= nil) then
+        startproject    "wxFormBuilder"
+    end
 
     local scriptDir     = os.getcwd()
 
+    -- The wxWidgets Configuration-Script parses the corresponding command line flags
+    -- for the architecture, its configuration function works only for one architecture
+    -- hence only one platform can be specified.
+    -- Don't specify the platform if none is specified to prevent the creation
+    -- of tagged configuration names.
     dofile(scriptDir .. "/wxwidgets.lua")
+    if platforms then
+        if (wxArchitecture == "x86_64") then
+            platforms   {"Win64"}
+        elseif (wxArchitecture == "x86") then
+            platforms   {"Win32"}
+        end
+    end
 
     local wxver         = string.gsub(wxVersion, '%.', '')
     location            ("../../build/" .. wxVersion .. "/" .. _ACTION)
@@ -29,7 +44,11 @@ solution "wxFormBuilder-Solution"
     --end
 
     if wxUseUnicode then
-        flags           {"Unicode"}
+        -- The Unicode flag got removed in Premake 5.x but is still required for Premake 4.x,
+        -- use the presence of the workspace function to detect if running under Premake 5.x
+        if (workspace == nil) then
+            flags       {"Unicode"}
+        end
         defines         {"UNICODE", "_UNICODE"}
     end
 
@@ -64,13 +83,21 @@ solution "wxFormBuilder-Solution"
         -- This produces D9025 because without ExtraWarnings /W3 gets set
         --buildoptions    {"/W4"}
 
-    dofile(scriptDir .. "/ticpp.lua")
+    dofile(scriptDir .. "/utilities.lua")
+
     dofile(scriptDir .. "/plugin-interface.lua")
+    dofile(scriptDir .. "/ticpp.lua")
 
     dofile(scriptDir .. "/plugins/additional.lua")
     dofile(scriptDir .. "/plugins/common.lua")
     dofile(scriptDir .. "/plugins/containers.lua")
     dofile(scriptDir .. "/plugins/forms.lua")
     dofile(scriptDir .. "/plugins/layout.lua")
+
+    -- The MacOS postbuild commands require that the plugins are already compiled,
+    -- with PreMake 4.x it is not possible to define a build order dependency for
+    -- libraries without linking to them.
+    -- Processing the wxformbuilder script after the plugin scripts results in a Makefile
+    -- that does process wxformbuilder after the plugin projects without defining a dependency between them.
+    -- This will break when using parallel builds because of the missing dependencies.
     dofile(scriptDir .. "/wxformbuilder.lua")
-    dofile(scriptDir .. "/utilities.lua")

@@ -49,6 +49,7 @@
 #include <wx/fs_arc.h>
 #include <wx/fs_filter.h>
 #include <wx/fs_mem.h>
+#include <wx/richmsgdlg.h>
 #include <wx/tokenzr.h>
 
 using namespace TypeConv;
@@ -458,6 +459,13 @@ void ApplicationData::Initialize()
 {
 	ApplicationData* appData = ApplicationData::Get();
 	appData->LoadApp();
+
+	// Use the color of a dominant text to determine if dark mode should be used.
+	// TODO: Depending on the used theme it is not clear which color that is,
+	//       using the window text has given the best results so far.
+	const auto col = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
+	const auto lightness = (col.Red() * 299 + col.Green() * 587 + col.Blue() * 114) / 1000;
+	appData->SetDarkMode(lightness > 127);
 }
 
 ApplicationData::ApplicationData( const wxString &rootdir )
@@ -465,6 +473,7 @@ ApplicationData::ApplicationData( const wxString &rootdir )
 		m_rootDir( rootdir ),
 		m_modFlag( false ),
 		m_warnOnAdditionsUpdate( true ),
+		m_darkMode(false),
 		m_objDb( new ObjectDatabase() ),
 		m_manager( new wxFBManager ),
 		m_ipc( new wxFBIPC ),
@@ -1323,24 +1332,20 @@ bool ApplicationData::LoadProject( const wxString &file, bool justGenerate )
 				wxLogError( wxT( "This project file is out of date.  Update your .fbp before using --generate" ) );
 				return false;
 			}
-			if ( wxYES == wxMessageBox( wxT( "This project file is not of the current version.\n" )
-			                            wxT( "Would you to attempt automatic conversion?\n\n" )
-			                            wxT( "NOTE: This will modify your project file on disk!" ), _( "Old Version" ), wxYES_NO ) )
+
+			wxMessageBox(
+			    _("This project file is using an older file format, it will be updated during loading.\n\n"
+			      "WARNING: Saving the project will update the format of the project file on disk!"),
+			    _("Older file format"));
+
+			if (ConvertProject(doc, file, fbpVerMajor, fbpVerMinor))
 			{
-				// we make a backup of the project
-				::wxCopyFile( file, file + wxT( ".bak" ) );
-
-				if ( !ConvertProject( file, fbpVerMajor, fbpVerMinor ) )
-				{
-					wxLogError( wxT( "Unable to convert project" ) );
-					return false;
-				}
-
-				XMLUtils::LoadXMLFile( doc, false, file );
+				// Document has changed -- reacquire the root node
 				root = doc.FirstChildElement();
 			}
 			else
 			{
+				wxLogError(wxT("Unable to convert project"));
 				return false;
 			}
 		}
@@ -1363,7 +1368,8 @@ bool ApplicationData::LoadProject( const wxString &file, bool justGenerate )
 			PObjectBase old_proj = m_project;
 			m_project = proj;
 			m_selObj = m_project;
-			m_modFlag = false;
+			// Set the modification to true if the project was older and has been converted
+			m_modFlag = older;
 			m_cmdProc.Reset();
 			m_projectFile = file;
 			SetProjectPath( ::wxPathOnly( file ) );
@@ -1380,15 +1386,13 @@ bool ApplicationData::LoadProject( const wxString &file, bool justGenerate )
 	return true;
 }
 
-bool ApplicationData::ConvertProject( const wxString& path, int fileMajor, int fileMinor )
+bool ApplicationData::ConvertProject(ticpp::Document& doc, const wxString& path, int fileMajor, int fileMinor)
 {
 	try
 	{
-		ticpp::Document doc;
 		XMLUtils::LoadXMLFile( doc, false, path );
 
 		ticpp::Element* root = doc.FirstChildElement();
-
 		if ( root->Value() == std::string( "object" ) )
 		{
 			ConvertProjectProperties( root, path, fileMajor, fileMinor );
@@ -1428,8 +1432,6 @@ bool ApplicationData::ConvertProject( const wxString& path, int fileMajor, int f
 			fileVersion->SetAttribute( "major", m_fbpVerMajor );
 			fileVersion->SetAttribute( "minor", m_fbpVerMinor );
 		}
-
-		doc.SaveFile();
 	}
 	catch ( ticpp::Exception& ex )
 	{
@@ -2391,8 +2393,9 @@ void ApplicationData::GenerateInheritedClass( PObjectBase form, wxString classNa
 		PProperty fileProp = obj->GetProperty( wxT( "file" ) );
 		PProperty genfileProp = obj->GetProperty( wxT( "gen_file" ) );
 		PProperty typeProp = obj->GetProperty( wxT( "type" ) );
+		PProperty pchProp = obj->GetProperty(wxT("precompiled_header"));
 
-		if ( !( baseNameProp && nameProp && fileProp && typeProp && genfileProp ) )
+		if (!(baseNameProp && nameProp && fileProp && typeProp && genfileProp && pchProp))
 		{
 			wxLogWarning( wxT("Missing Property") );
 			return;
@@ -2425,6 +2428,12 @@ void ApplicationData::GenerateInheritedClass( PObjectBase form, wxString classNa
 		fileProp->SetValue( inherFile.GetName() );
 		genfileProp->SetValue( genFile.GetFullPath() );
 		typeProp->SetValue( form->GetClassName() );
+
+        auto pchValue = project->GetProperty(wxT("precompiled_header"));
+        if (pchValue)
+        {
+            pchProp->SetValue(pchValue->GetValue());
+        }
 
 		// Determine if Microsoft BOM should be used
 		bool useMicrosoftBOM = false;
@@ -2945,8 +2954,17 @@ bool ApplicationData::IsModified()
 	return m_modFlag;
 }
 
-void ApplicationData::Execute( PCommand cmd )
+void ApplicationData::SetDarkMode(bool darkMode)
 {
+	m_darkMode = darkMode;
+}
+
+bool ApplicationData::IsDarkMode() const
+{
+	return m_darkMode;
+}
+
+void ApplicationData::Execute(PCommand cmd) {
 	m_modFlag = true;
 	m_cmdProc.Execute( cmd );
 }

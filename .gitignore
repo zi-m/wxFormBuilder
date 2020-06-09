@@ -1,9 +1,12 @@
 build/???/
+build/premake/**/bin/
+build/premake/**/obj/
 output/bin/
 output/lib*/
 output/share/
 output/*.dll
 output/*.exe
+output/**/*.idb
 output/**/*.ilk
 output/**/*.iobj
 output/**/*.ipdb
